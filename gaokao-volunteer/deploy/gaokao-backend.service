@@ -1,0 +1,14 @@
+[Unit]
+Description=高考志愿填报系统后端服务
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/opt/gaokao-volunteer/backend
+ExecStart=/usr/bin/java -jar /opt/gaokao-volunteer/backend/target/gaokao-volunteer-1.0.0.jar
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
