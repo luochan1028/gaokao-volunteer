@@ -1,32 +1,28 @@
-# Dependencies
-node_modules/
-frontend/node_modules/
+# Backend
+backend/target/
+backend/logs/
+*.log
+*.class
 
-# Build output
+# Frontend
+frontend/node_modules/
 frontend/dist/
+frontend/.env.local
+
+# Tools (build tools, not project source)
+tools/
 
 # IDE
 .idea/
-.vscode/
 *.iml
+.vscode/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-logs/
-
-# Environment
+# Env
 .env
-.env.local
 *.env
-
-# Maven
-backend/target/
-target/
-
-# Database
-*.db
-*.sqlite
