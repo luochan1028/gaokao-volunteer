@@ -90,6 +90,18 @@ const routes = [
     name: 'Profile',
     component: () => import('@/views/Profile.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/ai/assistant',
+    name: 'AIAssistant',
+    component: () => import('@/views/AIAssistant.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ai/report',
+    name: 'IntentionReport',
+    component: () => import('@/views/IntentionReport.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

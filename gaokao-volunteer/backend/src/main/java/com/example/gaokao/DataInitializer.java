@@ -22,6 +22,8 @@ public class DataInitializer implements CommandLineRunner {
     private final EnrollmentScoreRepository enrollmentScoreRepository;
     private final AdmissionPlanRepository admissionPlanRepository;
     private final PolicyDocumentRepository policyDocumentRepository;
+    private final com.example.gaokao.repository.SchoolMajorGroupRepository schoolMajorGroupRepository;
+    private final com.example.gaokao.repository.MajorCareerNodeRepository majorCareerNodeRepository;
     private final PasswordEncoder passwordEncoder;
 
     private List<College> colleges = new ArrayList<>();
@@ -41,6 +43,9 @@ public class DataInitializer implements CommandLineRunner {
         initEnrollmentScores();
         initAdmissionPlans();
         initPolicyDocuments();
+
+        initV2SchoolMajorGroups();
+        initV2MajorCareerNodes();
 
         log.info("========== 模拟数据初始化完成！ ==========");
         log.info("用户: {} | 院校: {} | 专业: {} | 录取分数: {} | 招生计划: {} | 政策公告: {}",
@@ -247,69 +252,76 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initEnrollmentScores() {
-        // 为每所院校生成四川3年（2022-2024）的录取数据
+        // 全国主要省份及难度系数（系数越大，同档次院校分数越高）
+        String[][] provinceData = {
+            {"北京", "0.95", "0.3"},    // 北京：分数略低，位次靠前（考生少）
+            {"上海", "0.97", "0.4"},    // 上海：分数中等
+            {"江苏", "1.02", "1.2"},    // 江苏：高考大省，竞争激烈
+            {"浙江", "1.00", "1.0"},    // 浙江：中等
+            {"广东", "1.01", "1.3"},    // 广东：考生多
+            {"四川", "0.98", "1.1"},    // 四川：考生较多
+            {"湖北", "0.99", "0.9"},    // 湖北：中等
+            {"山东", "1.00", "1.4"},    // 山东：高考大省
+            {"河南", "1.03", "1.5"},    // 河南：竞争最激烈
+            {"湖南", "0.99", "1.0"},    // 湖南：中等
+            {"安徽", "1.00", "1.1"},    // 安徽：考生较多
+            {"陕西", "0.97", "0.8"}     // 陕西：教育资源较好
+        };
         String[] years = {"2022", "2023", "2024"};
-        String province = "四川";
 
-        for (College college : colleges) {
-            for (String year : years) {
-                // 理科
-                int baseScore = college.getIs985() ? 600 : (college.getIs211() ? 550 : (college.getIsDoubleFirstClass() ? 520 : 480));
-                int yearOffset = Integer.parseInt(year) - 2022;
-                baseScore += yearOffset * 3;
+        int scoreCount = 0;
+        for (String[] prov : provinceData) {
+            String province = prov[0];
+            double scoreFactor = Double.parseDouble(prov[1]);
+            double rankFactor = Double.parseDouble(prov[2]);
 
-                int minScore = baseScore - 15;
-                int maxScore = baseScore + 25;
-                int avgScore = baseScore + 5;
-                int minRank = college.getIs985() ? 500 : (college.getIs211() ? 5000 : (college.getIsDoubleFirstClass() ? 15000 : 30000));
-                int maxRank = minRank + 3000;
-                int avgRank = minRank + 1500;
-                int enrollCount = 30 + (int)(Math.random() * 70);
+            for (College college : colleges) {
+                for (String year : years) {
+                    int baseScore = college.getIs985() ? 600 : (college.getIs211() ? 550 : (college.getIsDoubleFirstClass() ? 520 : 480));
+                    int yearOffset = Integer.parseInt(year) - 2022;
+                    baseScore = (int)(baseScore * scoreFactor) + yearOffset * 3;
 
-                EnrollmentScore scienceScore = EnrollmentScore.builder()
-                        .year(year).province(province)
-                        .batch(EnrollmentScore.Batch.BATCH_A)
-                        .scienceOrArts(EnrollmentScore.ScienceOrArts.SCIENCE)
-                        .minScore(minScore).maxScore(maxScore).averageScore(avgScore)
-                        .minRank(minRank).maxRank(maxRank).averageRank(avgRank)
-                        .enrollmentCount(enrollCount)
-                        .college(college)
-                        .build();
-                enrollmentScoreRepository.save(scienceScore);
+                    int minScore = baseScore - 15;
+                    int maxScore = baseScore + 25;
+                    int avgScore = baseScore + 5;
+                    int baseRank = college.getIs985() ? 500 : (college.getIs211() ? 5000 : (college.getIsDoubleFirstClass() ? 15000 : 30000));
+                    int minRank = (int)(baseRank * rankFactor);
+                    int maxRank = minRank + (int)(3000 * rankFactor);
+                    int avgRank = minRank + (int)(1500 * rankFactor);
+                    int enrollCount = 20 + (int)(Math.random() * 60);
 
-                // 文科（部分院校）
-                if (college.getIs985() || college.getIs211() || Math.random() > 0.5) {
-                    int artsBase = baseScore - 30;
-                    EnrollmentScore artsScore = EnrollmentScore.builder()
+                    EnrollmentScore scienceScore = EnrollmentScore.builder()
                             .year(year).province(province)
                             .batch(EnrollmentScore.Batch.BATCH_A)
-                            .scienceOrArts(EnrollmentScore.ScienceOrArts.ARTS)
-                            .minScore(artsBase - 15).maxScore(artsBase + 25).averageScore(artsBase + 5)
-                            .minRank(minRank + 2000).maxRank(minRank + 5000).averageRank(minRank + 3500)
-                            .enrollmentCount(20 + (int)(Math.random() * 50))
+                            .scienceOrArts(EnrollmentScore.ScienceOrArts.SCIENCE)
+                            .minScore(minScore).maxScore(maxScore).averageScore(avgScore)
+                            .minRank(minRank).maxRank(maxRank).averageRank(avgRank)
+                            .enrollmentCount(enrollCount)
                             .college(college)
                             .build();
-                    enrollmentScoreRepository.save(artsScore);
+                    enrollmentScoreRepository.save(scienceScore);
+                    scoreCount++;
+
+                    // 文科（重点院校都有，普通院校50%概率）
+                    if (college.getIs985() || college.getIs211() || Math.random() > 0.5) {
+                        int artsBase = (int)(baseScore * 0.95);
+                        EnrollmentScore artsScore = EnrollmentScore.builder()
+                                .year(year).province(province)
+                                .batch(EnrollmentScore.Batch.BATCH_A)
+                                .scienceOrArts(EnrollmentScore.ScienceOrArts.ARTS)
+                                .minScore(artsBase - 15).maxScore(artsBase + 20).averageScore(artsBase + 3)
+                                .minRank(minRank + (int)(2000 * rankFactor)).maxRank(minRank + (int)(5000 * rankFactor)).averageRank(minRank + (int)(3500 * rankFactor))
+                                .enrollmentCount(15 + (int)(Math.random() * 40))
+                                .college(college)
+                                .build();
+                        enrollmentScoreRepository.save(artsScore);
+                        scoreCount++;
+                    }
                 }
             }
         }
 
-        // 添加一些北京的历史数据（兼容旧逻辑）
-        for (int i = 0; i < Math.min(12, colleges.size()); i++) {
-            College college = colleges.get(i);
-            EnrollmentScore bjScore = EnrollmentScore.builder()
-                    .year("2023").province("北京")
-                    .batch(EnrollmentScore.Batch.SPECIAL_BATCH)
-                    .scienceOrArts(EnrollmentScore.ScienceOrArts.SCIENCE)
-                    .minScore(620 + i * 5).maxScore(700 + i * 5).averageScore(660 + i * 5)
-                    .minRank(100 + i * 150).maxRank(400 + i * 200).averageRank(250 + i * 175)
-                    .enrollmentCount(40 + i * 10)
-                    .college(college)
-                    .build();
-            enrollmentScoreRepository.save(bjScore);
-        }
-
-        log.info("✓ 录取分数数据初始化完成，共{}条", enrollmentScoreRepository.count());
+        log.info("✓ 录取分数数据初始化完成，共{}条（12个省份 × 3年 × 文理）", scoreCount);
     }
 
     private void initAdmissionPlans() {
@@ -388,6 +400,115 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         log.info("✓ 政策公告数据初始化完成，共{}条", policyDocumentRepository.count());
+    }
+
+    private void initV2SchoolMajorGroups() {
+        if (schoolMajorGroupRepository != null && schoolMajorGroupRepository.count() > 0) {
+            log.info("V2.0院校专业组数据已存在，跳过初始化");
+            return;
+        }
+
+        // 四川院校专业组数据
+        Object[][] data = {
+            {"四川大学", "10610", "四川", "985", "SC001", "计算机类", "[\"计算机科学与技术\",\"软件工程\",\"数据科学\"]", "物理+化学", 625, 620, 615, 8000, 8500, 9000, true, 5000},
+            {"四川大学", "10610", "四川", "985", "SC002", "医学类", "[\"临床医学\",\"口腔医学\"]", "物理+化学", 640, 635, 630, 4000, 4200, 4500, true, 6000},
+            {"四川大学", "10610", "四川", "985", "SC003", "法学类", "[\"法学\"]", "历史", 610, 605, 600, 12000, 12500, 13000, true, 4500},
+            {"电子科技大学", "10614", "四川", "985", "SC004", "电子信息类", "[\"电子信息工程\",\"通信工程\"]", "物理+化学", 635, 630, 625, 5000, 5500, 6000, true, 5500},
+            {"电子科技大学", "10614", "四川", "985", "SC005", "计算机类", "[\"计算机科学与技术\",\"人工智能\"]", "物理+化学", 640, 635, 630, 4000, 4500, 5000, true, 5500},
+            {"西南交通大学", "10613", "四川", "211", "SC006", "土木类", "[\"土木工程\",\"建筑学\"]", "物理+化学", 580, 575, 570, 20000, 21000, 22000, true, 4500},
+            {"西南交通大学", "10613", "四川", "211", "SC007", "电气类", "[\"电气工程及其自动化\"]", "物理+化学", 590, 585, 580, 18000, 19000, 20000, true, 4500},
+            {"西南财经大学", "10651", "四川", "211", "SC008", "金融类", "[\"金融学\",\"经济学\"]", "物理或历史", 595, 590, 585, 15000, 16000, 17000, true, 5000},
+            {"西南财经大学", "10651", "四川", "211", "SC009", "会计类", "[\"会计学\",\"财务管理\"]", "不限", 580, 575, 570, 20000, 21000, 22000, true, 5000},
+            {"四川农业大学", "10626", "四川", "211", "SC010", "农学类", "[\"农学\",\"动物医学\"]", "物理或化学", 530, 525, 520, 50000, 52000, 54000, true, 4500},
+            {"成都理工大学", "10616", "四川", "双一流", "SC011", "地质类", "[\"地质学\",\"地球物理\"]", "物理+化学", 540, 535, 530, 40000, 42000, 44000, true, 4500},
+            {"成都理工大学", "10616", "四川", "双一流", "SC012", "计算机类", "[\"计算机科学与技术\"]", "物理+化学", 550, 545, 540, 35000, 37000, 39000, false, 4500},
+            {"西南石油大学", "10615", "四川", "双一流", "SC013", "石油类", "[\"石油工程\",\"油气储运\"]", "物理+化学", 530, 525, 520, 50000, 52000, 54000, true, 4500},
+            {"四川师范大学", "10636", "四川", "普通本科", "SC014", "师范类", "[\"汉语言文学\",\"数学与应用数学\",\"英语\"]", "不限", 520, 515, 510, 55000, 57000, 59000, true, 3700},
+            {"四川师范大学", "10636", "四川", "普通本科", "SC015", "教育学类", "[\"教育学\",\"学前教育\"]", "不限", 510, 505, 500, 60000, 62000, 64000, true, 3700},
+            {"西华大学", "10623", "四川", "普通本科", "SC016", "机械类", "[\"机械工程\",\"自动化\"]", "物理+化学", 515, 510, 505, 58000, 60000, 62000, true, 4500},
+            {"西华大学", "10623", "四川", "普通本科", "SC017", "食品类", "[\"食品科学与工程\"]", "物理或化学", 500, 495, 490, 70000, 72000, 74000, false, 4500},
+            {"成都信息工程大学", "10621", "四川", "普通本科", "SC018", "计算机类", "[\"计算机科学与技术\",\"软件工程\"]", "物理+化学", 525, 520, 515, 50000, 52000, 54000, true, 4500},
+            {"成都信息工程大学", "10621", "四川", "普通本科", "SC019", "气象类", "[\"大气科学\"]", "物理+化学", 510, 505, 500, 65000, 67000, 69000, true, 4500},
+            {"成都大学", "11079", "四川", "普通本科", "SC020", "综合类", "[\"工商管理\",\"旅游管理\"]", "不限", 495, 490, 485, 75000, 77000, 79000, false, 4500},
+            {"西南民族大学", "10656", "四川", "普通本科", "SC021", "法学类", "[\"法学\"]", "不限", 510, 505, 500, 60000, 62000, 64000, true, 4500},
+            {"西南民族大学", "10656", "四川", "普通本科", "SC022", "文学类", "[\"汉语言文学\",\"新闻学\"]", "不限", 500, 495, 490, 70000, 72000, 74000, false, 4500},
+        };
+
+        for (Object[] row : data) {
+            SchoolMajorGroup g = SchoolMajorGroup.builder()
+                .schoolName((String) row[0])
+                .schoolCode((String) row[1])
+                .schoolProvince((String) row[2])
+                .schoolTier((String) row[3])
+                .majorGroupCode((String) row[4])
+                .majorGroupName((String) row[5])
+                .majorList((String) row[6])
+                .subjectRequirement((String) row[7])
+                .batch("本科批")
+                .admissionLine2024((Integer) row[8])
+                .admissionLine2023((Integer) row[9])
+                .admissionLine2022((Integer) row[10])
+                .minRank2024((Integer) row[11])
+                .minRank2023((Integer) row[12])
+                .minRank2022((Integer) row[13])
+                .hasMasterPoint((Boolean) row[14])
+                .tuitionFee((Integer) row[15])
+                .isDiscontinued(false)
+                .isChanged(false)
+                .dataInsufficient(false)
+                .build();
+            schoolMajorGroupRepository.save(g);
+        }
+        log.info("✓ V2.0院校专业组数据初始化完成");
+    }
+
+    private void initV2MajorCareerNodes() {
+        if (majorCareerNodeRepository != null && majorCareerNodeRepository.count() > 0) {
+            log.info("V2.0专业职业节点数据已存在，跳过初始化");
+            return;
+        }
+
+        Object[][] data = {
+            {"计算机科学与技术", "080901", "工学", "[\"软件开发工程师\",\"算法工程师\",\"运维工程师\"]", "{\"互联网\":40,\"金融\":15,\"制造业\":20}", "10-18K", "8-12K", "5-8K", "15-25K", "[\"初级开发→高级开发→架构师→技术总监\"]", "[\"计算机技术\",\"软件工程\",\"人工智能\"]", "[\"各部委信息中心\",\"税务局\",\"统计局\"]", "[\"软考\",\"PMP\"]", "低", "风口", "I", "AI时代核心专业，需求持续旺盛"},
+            {"软件工程", "080902", "工学", "[\"软件工程师\",\"项目经理\",\"测试工程师\"]", "{\"互联网\":45,\"金融\":10,\"通信\":15}", "10-16K", "8-10K", "5-7K", "15-22K", "[\"开发→高级开发→项目经理→技术管理\"]", "[\"软件工程\",\"计算机技术\"]", "[\"税务局\",\"海关\"]", "[\"软考\"]", "低", "风口", "I", "工程化能力突出，就业面广"},
+            {"临床医学", "100201", "医学", "[\"临床医师\",\"医学研究员\",\"医疗管理\"]", "{\"医疗\":80,\"教育\":10}", "8-12K", "6-8K", "4-6K", "15-30K", "[\"住院医师→主治医师→副主任医师→主任医师\"]", "[\"内科学\",\"外科学\"]", "[\"卫健委\",\"疾控中心\"]", "[\"执业医师证\"]", "低", "普通家庭慎选", "I", "长学制长回报，需硕士起步，普通家庭经济压力大"},
+            {"法学", "030101", "法学", "[\"律师\",\"法官\",\"企业法务\"]", "{\"法律服务\":40,\"政府\":25,\"企业\":25}", "6-10K", "5-8K", "3-5K", "12-20K", "[\"实习律师→执业律师→合伙人→高级合伙人\"]", "[\"法学\",\"法律硕士\"]", "[\"法院\",\"检察院\",\"司法局\"]", "[\"法律职业资格证\"]", "中", "常规", "S", "考公优势大，但法考通过率仅15%左右"},
+            {"金融学", "020301", "经济学", "[\"金融分析师\",\"投资顾问\",\"银行客户经理\"]", "{\"银行\":30,\"证券\":20,\"基金\":15}", "8-15K", "6-10K", "4-6K", "15-25K", "[\"柜员→客户经理→分支行长\"]", "[\"金融学\",\"金融硕士\"]", "[\"银保监会\",\"税务局\"]", "[\"CFA\",\"基金从业\"]", "高", "普通家庭慎选", "E", "资源导向型行业，无资源家庭发展受限"},
+            {"会计学", "120203", "管理学", "[\"会计师\",\"审计师\",\"财务总监\"]", "{\"企业\":35,\"会计所\":25,\"政府\":15}", "6-9K", "5-7K", "3-5K", "12-18K", "[\"出纳→会计→财务经理→CFO\"]", "[\"会计学\",\"MPAcc\"]", "[\"财政局\",\"税务局\",\"审计署\"]", "[\"CPA\",\"初中级会计\"]", "高", "常规", "C", "AI替代风险高，基础会计岗位正在缩减"},
+            {"汉语言文学", "050101", "文学", "[\"教师\",\"编辑\",\"文案策划\"]", "{\"教育\":40,\"媒体\":20,\"企业\":20}", "5-8K", "4-6K", "3-5K", "8-15K", "[\"教师→高级教师→教研员\"]", "[\"学科教学\"]", "[\"宣传部\",\"文化局\"]", "[\"教师资格证\"]", "中", "常规", "A", "万金油专业但竞争激烈，考公考编是主要出路"},
+            {"电气工程及其自动化", "080601", "工学", "[\"电气工程师\",\"电力工程师\"]", "{\"电力\":40,\"制造\":25,\"建筑\":15}", "7-12K", "6-9K", "4-6K", "12-20K", "[\"助理工程师→工程师→高级工程师\"]", "[\"电气工程\"]", "[\"国家电网\",\"南方电网\"]", "[\"注册电气工程师\"]", "低", "风口", "R", "国家电网是最大雇主，稳定性强"},
+            {"机械工程", "080201", "工学", "[\"机械工程师\",\"设计工程师\"]", "{\"制造\":50,\"汽车\":20,\"航空\":10}", "6-10K", "5-8K", "3-5K", "10-18K", "[\"技术员→工程师→高级工程师→总工\"]", "[\"机械工程\"]", "[\"工信厅\"]", "[\"注册机械工程师\"]", "中", "常规", "R", "传统工科，智能制造转型带来新机会"},
+            {"土木工程", "081001", "工学", "[\"土木工程师\",\"建造师\",\"监理\"]", "{\"建筑\":40,\"基建\":30,\"政府\":15}", "6-9K", "5-7K", "3-5K", "10-16K", "[\"技术员→工程师→项目经理→总工\"]", "[\"土木工程\"]", "[\"住建局\",\"交通局\"]", "[\"一级建造师\"]", "低", "天坑", "R", "房地产下行周期，行业岗位大幅减少"},
+            {"数学与应用数学", "070101", "理学", "[\"数据分析师\",\"精算师\",\"数学教师\"]", "{\"教育\":30,\"金融\":20,\"互联网\":20}", "7-12K", "6-9K", "4-6K", "12-20K", "[\"分析师→高级分析师→数据科学家\"]", "[\"应用数学\",\"统计学\"]", "[\"统计局\"]", "[\"精算师\"]", "低", "风口", "I", "基础学科，转行互联网/金融优势大"},
+            {"护理学", "101101", "医学", "[\"护士\",\"护理主管\"]", "{\"医疗\":85,\"社区\":10}", "5-7K", "4-6K", "3-5K", "8-12K", "[\"护士→护师→主管护师→护士长\"]", "[\"护理学\"]", "[\"卫健委\"]", "[\"护士执业证\"]", "低", "常规", "S", "需求量大但工作强度高，职业天花板较低"},
+            {"教育学", "040101", "教育学", "[\"教师\",\"教育管理\"]", "{\"教育\":70,\"政府\":15}", "5-8K", "4-6K", "3-5K", "8-14K", "[\"教师→教务主任→校长\"]", "[\"教育学\"]", "[\"教育局\"]", "[\"教师资格证\"]", "中", "常规", "S", "师范类专业稳定但薪资一般，考编是关键"},
+            {"人工智能", "080717", "工学", "[\"AI工程师\",\"算法专家\"]", "{\"互联网\":50,\"AI企业\":30,\"金融\":10}", "12-20K", "10-15K", "6-10K", "20-35K", "[\"初级AI工程师→高级→算法专家→首席科学家\"]", "[\"人工智能\",\"计算机科学\"]", "[\"科技部\"]", "[\"深度学习认证\"]", "低", "风口", "I", "当前最火热方向，薪资高但竞争激烈"},
+            {"农学", "090101", "农学", "[\"农业技术员\",\"农技推广\"]", "{\"农业\":60,\"政府\":20}", "4-6K", "3-5K", "3-4K", "6-10K", "[\"技术员→农艺师→高级农艺师\"]", "[\"作物学\"]", "[\"农业农村厅\"]", "[\"农艺师证\"]", "低", "天坑", "R", "就业面窄薪资低，但对口考公有优势"},
+        };
+
+        for (Object[] row : data) {
+            MajorCareerNode n = MajorCareerNode.builder()
+                .majorName((String) row[0])
+                .majorCode((String) row[1])
+                .category((String) row[2])
+                .typicalJobs((String) row[3])
+                .industryDistribution((String) row[4])
+                .salaryTier1((String) row[5])
+                .salaryTier2((String) row[6])
+                .salaryTier3((String) row[7])
+                .salary5YearMedian((String) row[8])
+                .careerPath5Year((String) row[9])
+                .postgradDirections((String) row[10])
+                .civilServiceJobs((String) row[11])
+                .requiredCerts((String) row[12])
+                .aiReplaceRisk((String) row[13])
+                .realityTag((String) row[14])
+                .hollandCode((String) row[15])
+                .realityReason((String) row[16])
+                .build();
+            majorCareerNodeRepository.save(n);
+        }
+        log.info("✓ V2.0专业职业节点数据初始化完成");
     }
 
 
