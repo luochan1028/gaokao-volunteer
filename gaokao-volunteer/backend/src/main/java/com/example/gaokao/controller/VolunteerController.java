@@ -62,9 +62,36 @@ public class VolunteerController {
 
         String name = (String) request.get("name");
         String description = (String) request.get("description");
-        String selectionMode = (String) request.get("selectionMode");
+        String selectionMode = (String) request.getOrDefault("selectionMode", "COLLEGE_FIRST");
+        if (selectionMode == null || selectionMode.isBlank()) {
+            selectionMode = "COLLEGE_FIRST";
+        }
+        if (selectionMode.equals("院校优先") || selectionMode.equals("院校优先级")) {
+            selectionMode = "COLLEGE_FIRST";
+        } else if (selectionMode.equals("专业优先") || selectionMode.equals("专业优先级")) {
+            selectionMode = "MAJOR_FIRST";
+        }
+
         @SuppressWarnings("unchecked")
         List<Long> volunteerListIds = (List<Long>) request.get("volunteerListIds");
+        if (volunteerListIds == null || volunteerListIds.isEmpty()) {
+            @SuppressWarnings("unchecked")
+            List<Object> items = (List<Object>) request.get("items");
+            if (items != null) {
+                volunteerListIds = new java.util.ArrayList<>();
+                for (Object item : items) {
+                    if (item instanceof Number n) {
+                        volunteerListIds.add(n.longValue());
+                    } else if (item instanceof java.util.Map<?, ?> m && m.get("id") != null) {
+                        volunteerListIds.add(((Number) m.get("id")).longValue());
+                    }
+                }
+            }
+        }
+
+        if (volunteerListIds == null) {
+            volunteerListIds = java.util.Collections.emptyList();
+        }
 
         VolunteerPlan plan = volunteerService.savePlan(user, name, description, selectionMode, volunteerListIds);
         return ApiResponse.success("保存成功", plan);

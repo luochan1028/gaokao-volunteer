@@ -16,6 +16,10 @@
                   {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
                 </el-button>
               </div>
+              <div v-if="sentCode" class="demo-code-tip">
+                <span class="demo-code-label">📱 Demo 验证码：</span>
+                <span class="demo-code-value">{{ sentCode }}</span>
+              </div>
             </el-form-item>
             <el-form-item prop="password">
               <el-input v-model="form.password" type="password" placeholder="请输入密码" prefix-icon="el-icon-lock" />
@@ -49,6 +53,7 @@ const authStore = useAuthStore()
 const formRef = ref(null)
 const loading = ref(false)
 const countdown = ref(0)
+const sentCode = ref("")
 
 const form = reactive({
   phone: '',
@@ -99,6 +104,7 @@ async function sendCode() {
     const response = await sendCodeApi(form.phone)
     // Demo模式：后端直接返回验证码
     const code = response.data.data
+    sentCode.value = code
     ElMessage.success(`验证码已发送，Demo验证码：${code}`)
 
     countdown.value = 60
@@ -159,6 +165,28 @@ async function handleRegister() {
   font-size: 14px;
   color: var(--color-text-muted);
   margin-bottom: 30px;
+}
+
+.demo-code-tip {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.demo-code-label {
+  color: var(--color-text-secondary);
+}
+.demo-code-value {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+  font-size: 16px;
+  font-family: var(--font-mono);
+  letter-spacing: 3px;
 }
 
 .code-input {

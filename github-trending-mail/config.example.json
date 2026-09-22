@@ -1,0 +1,45 @@
+{
+  "schedule": {
+    "enabled": true,
+    "time": "09:00",
+    "frequency": "daily"
+  },
+  "topN": 10,
+  "categories": [
+    {
+      "key": "finance",
+      "label": "财经",
+      "topics": ["finance", "trading", "stock"],
+      "topN": 5,
+      "minStars": 500,
+      "pushedDays": 90
+    },
+    {
+      "key": "video",
+      "label": "视频",
+      "topics": ["video", "video-player", "streaming"],
+      "topN": 5,
+      "minStars": 500,
+      "pushedDays": 90
+    }
+  ],
+  "mail": {
+    "from": "",
+    "to": [],
+    "subjectPrefix": "【GitHub每日热门项目推送】"
+  },
+  "smtp": {
+    "host": "",
+    "port": 465,
+    "secure": true,
+    "user": "",
+    "pass": ""
+  },
+  "log": {
+    "enabled": true,
+    "keepDays": 30
+  },
+  "github": {
+    "timeoutMs": 30000
+  }
+}

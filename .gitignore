@@ -12,6 +12,20 @@ frontend/.env.local
 # Tools (build tools, not project source)
 tools/
 
+ffmpeg*.exe
+ffmpeg*.gz
+
+# 大体积/运行产物
+*.docx
+*.zip
+gaokao-volunteer/frontend-dist.zip
+video-prompts-crawler/frames/
+video-prompts-crawler/data/
+video-prompts-crawler/logs/
+video-prompts-crawler/reports/
+github-trending-mail/logs/
+github-trending-mail/node_modules/
+
 # IDE
 .idea/
 *.iml

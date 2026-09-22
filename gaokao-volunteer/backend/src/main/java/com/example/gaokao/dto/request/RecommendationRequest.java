@@ -22,7 +22,7 @@ public class RecommendationRequest {
 
     private String scienceOrArts;
 
-    private String selectedSubjects;
+    private List<String> selectedSubjects;
 
     private List<String> preferredMajors;
 

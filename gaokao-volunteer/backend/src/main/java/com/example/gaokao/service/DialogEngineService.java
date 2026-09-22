@@ -50,7 +50,8 @@ public class DialogEngineService {
         profileRepo.save(profile);
 
         DialogResponse resp = new DialogResponse();
-        resp.setResponse("你好！我是高考志愿AI助手。接下来的几分钟，我会通过对话帮你理清志愿方向。我们先从基本信息开始——你是哪个省份的考生？");
+        resp.setResponse("你好！我是高考志愿AI助手🤖 接下来几分钟，我会通过对话帮你理清志愿方向。先从基本信息开始——你是哪个省份的考生？");
+        resp.setOptions(Arrays.asList("四川", "河南", "山东", "广东", "河北", "湖南"));
         resp.setPhase(Phase.BASE_INFO.name());
         resp.setNextAction("voice_input");
         resp.setNextQuestionId("base_province");
@@ -128,10 +129,12 @@ public class DialogEngineService {
                 String province = extractProvince(text);
                 if (province != null) {
                     profile.setProvince(province);
-                    resp.setResponse("好的，" + province + "考生。你的高考年份是2026年吗？还是其他年份？");
+                    resp.setResponse("好的，" + province + "考生👌 你的高考年份是？");
+                    resp.setOptions(Arrays.asList("2026年", "2025年", "2027年"));
                     profile.setCurrentQuestionId("base_year");
                 } else {
-                    resp.setResponse("请告诉我你的高考省份，比如四川、河南、山东等。");
+                    resp.setResponse("你是哪个省份的考生呀？");
+                    resp.setOptions(Arrays.asList("四川", "河南", "山东", "广东", "河北", "湖南"));
                 }
                 break;
 
@@ -142,7 +145,8 @@ public class DialogEngineService {
                 } catch (Exception e) {
                     profile.setExamYear(2026);
                 }
-                resp.setResponse("明白了。你的选科组合是什么？比如物化生、史地政等。");
+                resp.setResponse("明白了～你的选科组合是什么？");
+                resp.setOptions(Arrays.asList("物化生", "物化地", "物化政", "史地政", "史地生"));
                 profile.setCurrentQuestionId("base_subject");
                 break;
 
@@ -150,10 +154,12 @@ public class DialogEngineService {
                 String subject = extractSubjectComb(text);
                 if (subject != null) {
                     profile.setSubjectComb(subject);
-                    resp.setResponse("好的，" + subject + "组合。你的高考总分是多少？（如果还没考完，可以填预估分）");
+                    resp.setResponse("好的，" + subject + "组合👍 你的高考总分是多少？（可以填预估分）");
+                    resp.setOptions(Arrays.asList("600分以上", "550-600分", "500-550分", "450-500分"));
                     profile.setCurrentQuestionId("base_score");
                 } else {
-                    resp.setResponse("请告诉我你的选科组合，比如物理+化学+生物，或者简称物化生。");
+                    resp.setResponse("你的选科组合是？比如物理+化学+生物，简称物化生～");
+                    resp.setOptions(Arrays.asList("物化生", "物化地", "物化政", "史地政"));
                 }
                 break;
 
@@ -161,10 +167,12 @@ public class DialogEngineService {
                 Integer score = extractNumber(text);
                 if (score != null && score > 0 && score <= 750) {
                     profile.setTotalScore(score);
-                    resp.setResponse("你的省排名位次大概是多少？（如果不确定可以说不知道）");
+                    resp.setResponse("收到！你的省排名位次大概是多少？（不确定可以说不知道）");
+                    resp.setOptions(Arrays.asList("10000以内", "10000-30000", "30000-50000", "不知道"));
                     profile.setCurrentQuestionId("base_rank");
                 } else {
-                    resp.setResponse("请输入0-750之间的分数。");
+                    resp.setResponse("请输入0-750之间的分数哦～");
+                    resp.setOptions(Arrays.asList("600分以上", "550分左右", "500分左右"));
                 }
                 break;
 
@@ -172,7 +180,8 @@ public class DialogEngineService {
                 Integer rank = extractNumber(text);
                 if (text.contains("不知道") || text.contains("不确定") || text.contains("没")) {
                     profile.setRank(0);
-                    resp.setResponse("没关系，位次可以后续补充。接下来进入张雪峰家庭现实八问，帮我了解你的家庭背景。");
+                    resp.setResponse("没关系，位次可以后续补充。接下来进入张雪峰家庭现实八问，帮我了解你的家庭背景～");
+                    resp.setOptions(ZhangXuefengQuestions.FAMILY_QUESTIONS.get(0).getOptions());
                     profile.setDialogPhase(Phase.FAMILY_Q.name());
                     profile.setCurrentQuestionId("Q1");
                     resp.setPhase(Phase.FAMILY_Q.name());
@@ -181,11 +190,13 @@ public class DialogEngineService {
                     profile.setRank(rank);
                     profile.setDialogPhase(Phase.FAMILY_Q.name());
                     profile.setCurrentQuestionId("Q1");
-                    resp.setResponse("好的，记下了。接下来进入张雪峰家庭现实八问。第一题：" + ZhangXuefengQuestions.FAMILY_QUESTIONS.get(0).getText());
+                    resp.setResponse("好的，记下了！接下来进入张雪峰家庭现实八问。第一题：" + ZhangXuefengQuestions.FAMILY_QUESTIONS.get(0).getText());
+                    resp.setOptions(ZhangXuefengQuestions.FAMILY_QUESTIONS.get(0).getOptions());
                     resp.setPhase(Phase.FAMILY_Q.name());
                     resp.setNextQuestionId("Q1");
                 } else {
-                    resp.setResponse("请输入你的省排名位次（一个数字），或者说不知道。");
+                    resp.setResponse("请输入你的省排名位次，或者说不知道也行～");
+                    resp.setOptions(Arrays.asList("10000以内", "50000左右", "不知道"));
                 }
                 break;
         }
@@ -197,6 +208,36 @@ public class DialogEngineService {
     // === 张雪峰家庭八问 ===
     private DialogResponse handleFamilyQuestion(StudentProfile profile, String text) {
         String qId = profile.getCurrentQuestionId();
+
+        // 处理followup追问状态
+        if (qId.equals("Q7_followup")) {
+            DialogResponse resp = new DialogResponse();
+            resp.setPhase(Phase.FAMILY_Q.name());
+            if (text.contains("不知道") || text.contains("没有") || text.contains("随便") || text.contains("都可以")) {
+                setProfileField(profile, "city_preference", "city_open");
+            } else {
+                setProfileField(profile, "city_excluded", text);
+            }
+            // 继续下一题Q8
+            int nextIdx = 7; // Q7的下一题是Q8(index=7)
+            if (nextIdx < ZhangXuefengQuestions.FAMILY_QUESTIONS.size()) {
+                ZhangXuefengQuestions.Question nextQ = ZhangXuefengQuestions.FAMILY_QUESTIONS.get(nextIdx);
+                resp.setResponse("好的～下一题：" + nextQ.getText());
+                resp.setOptions(nextQ.getOptions());
+                profile.setCurrentQuestionId(nextQ.getId());
+                resp.setNextQuestionId(nextQ.getId());
+            } else {
+                resp.setResponse("家庭现实八问完成！接下来是专业筛选八问。第一题：" + ZhangXuefengQuestions.MAJOR_QUESTIONS.get(0).getText());
+                resp.setOptions(ZhangXuefengQuestions.MAJOR_QUESTIONS.get(0).getOptions());
+                profile.setDialogPhase(Phase.MAJOR_Q.name());
+                profile.setCurrentQuestionId("P1");
+                resp.setPhase(Phase.MAJOR_Q.name());
+                resp.setNextQuestionId("P1");
+            }
+            resp.setNextAction("voice_input");
+            return resp;
+        }
+
         int idx = Integer.parseInt(qId.substring(1)) - 1;
 
         if (idx < 0 || idx >= ZhangXuefengQuestions.FAMILY_QUESTIONS.size()) {
@@ -218,38 +259,32 @@ public class DialogEngineService {
             // Q7不确定追问
             if (qId.equals("Q7") && answerIdx == 3) {
                 resp.setResponse(ZhangXuefengQuestions.Q7_FOLLOWUP);
+                resp.setOptions(Arrays.asList("没有，都可以", "不想去西藏/新疆等偏远地区", "只想留本省"));
                 profile.setCurrentQuestionId("Q7_followup");
                 resp.setNextQuestionId("Q7_followup");
                 resp.setNextAction("voice_input");
                 return resp;
-            }
-            if (qId.equals("Q7_followup")) {
-                if (text.contains("不知道") || text.contains("没有") || text.contains("随便")) {
-                    setProfileField(profile, "city_preference", "city_open");
-                } else {
-                    // 尝试提取不想去的城市
-                    setProfileField(profile, "city_excluded", text);
-                }
-                qId = "Q7";
-                idx = 6;
             }
 
             // 下一题
             int nextIdx = idx + 1;
             if (nextIdx < ZhangXuefengQuestions.FAMILY_QUESTIONS.size()) {
                 ZhangXuefengQuestions.Question nextQ = ZhangXuefengQuestions.FAMILY_QUESTIONS.get(nextIdx);
-                resp.setResponse("好的。下一题：" + nextQ.getText());
+                resp.setResponse("好的～下一题：" + nextQ.getText());
+                resp.setOptions(nextQ.getOptions());
                 profile.setCurrentQuestionId(nextQ.getId());
                 resp.setNextQuestionId(nextQ.getId());
             } else {
                 resp.setResponse("家庭现实八问完成！接下来是专业筛选八问。第一题：" + ZhangXuefengQuestions.MAJOR_QUESTIONS.get(0).getText());
+                resp.setOptions(ZhangXuefengQuestions.MAJOR_QUESTIONS.get(0).getOptions());
                 profile.setDialogPhase(Phase.MAJOR_Q.name());
                 profile.setCurrentQuestionId("P1");
                 resp.setPhase(Phase.MAJOR_Q.name());
                 resp.setNextQuestionId("P1");
             }
         } else {
-            resp.setResponse("请选择：" + q.getText() + " 选项：" + String.join(" / ", q.getOptions()));
+            resp.setResponse("可以从下面选项中选一个哦～");
+            resp.setOptions(q.getOptions());
             resp.setNextQuestionId(qId);
         }
 
@@ -260,6 +295,39 @@ public class DialogEngineService {
     // === 张雪峰专业八问 ===
     private DialogResponse handleMajorQuestion(StudentProfile profile, String text) {
         String qId = profile.getCurrentQuestionId();
+
+        // 处理followup追问状态 (P1_followup, P2_followup, P3_followup)
+        if (qId.endsWith("_followup")) {
+            DialogResponse resp = new DialogResponse();
+            resp.setPhase(Phase.MAJOR_Q.name());
+            String baseQId = qId.replace("_followup", "");
+            if (text.contains("不能") || text.contains("不行")) {
+                setProfileField(profile, getBaseField(baseQId), "谨慎");
+            }
+            // 继续下一题
+            int baseIdx = Integer.parseInt(baseQId.substring(1)) - 1;
+            int nextIdx = baseIdx + 1;
+            if (nextIdx < ZhangXuefengQuestions.MAJOR_QUESTIONS.size()) {
+                ZhangXuefengQuestions.Question nextQ = ZhangXuefengQuestions.MAJOR_QUESTIONS.get(nextIdx);
+                resp.setResponse("好的～下一题：" + nextQ.getText());
+                resp.setOptions(nextQ.getOptions());
+                profile.setCurrentQuestionId(nextQ.getId());
+                resp.setNextQuestionId(nextQ.getId());
+            } else {
+                resp.setResponse("专业筛选完成！接下来做个简单的性格测试，12道题很快就好～第1题：" + HollandQuestions.QUESTIONS.get(0).getScenario());
+                resp.setOptions(Arrays.asList(
+                    HollandQuestions.QUESTIONS.get(0).getOptionA(),
+                    HollandQuestions.QUESTIONS.get(0).getOptionB()
+                ));
+                profile.setDialogPhase(Phase.HOLLAND.name());
+                profile.setCurrentQuestionId("H1");
+                resp.setPhase(Phase.HOLLAND.name());
+                resp.setNextQuestionId("H1");
+            }
+            resp.setNextAction("voice_input");
+            return resp;
+        }
+
         int idx = Integer.parseInt(qId.substring(1)) - 1;
 
         if (idx < 0 || idx >= ZhangXuefengQuestions.MAJOR_QUESTIONS.size()) {
@@ -295,35 +363,34 @@ public class DialogEngineService {
             // P1-P3回答"是"时追问考研
             if ((qId.equals("P1") || qId.equals("P2") || qId.equals("P3")) && answerIdx == 0) {
                 resp.setResponse(ZhangXuefengQuestions.P_MEDICAL_FOLLOWUP);
+                resp.setOptions(Arrays.asList("能接受", "勉强接受", "不能接受"));
                 profile.setCurrentQuestionId(qId + "_followup");
                 resp.setNextQuestionId(qId + "_followup");
                 resp.setNextAction("voice_input");
                 return resp;
             }
-            if (qId.endsWith("_followup")) {
-                if (text.contains("不能") || text.contains("不行")) {
-                    String baseQId = qId.replace("_followup", "");
-                    setProfileField(profile, getBaseField(baseQId), "谨慎");
-                }
-                qId = qId.replace("_followup", "");
-                idx = Integer.parseInt(qId.substring(1)) - 1;
-            }
 
             int nextIdx = idx + 1;
             if (nextIdx < ZhangXuefengQuestions.MAJOR_QUESTIONS.size()) {
                 ZhangXuefengQuestions.Question nextQ = ZhangXuefengQuestions.MAJOR_QUESTIONS.get(nextIdx);
-                resp.setResponse("好的。下一题：" + nextQ.getText());
+                resp.setResponse("好的～下一题：" + nextQ.getText());
+                resp.setOptions(nextQ.getOptions());
                 profile.setCurrentQuestionId(nextQ.getId());
                 resp.setNextQuestionId(nextQ.getId());
             } else {
-                resp.setResponse("专业筛选完成！接下来做一个简单的性格测试，12道题很快就好。第一题：" + HollandQuestions.QUESTIONS.get(0).getScenario() + " A: " + HollandQuestions.QUESTIONS.get(0).getOptionA() + " B: " + HollandQuestions.QUESTIONS.get(0).getOptionB());
+                resp.setResponse("专业筛选完成！接下来做个简单的性格测试，12道题很快就好～第1题：" + HollandQuestions.QUESTIONS.get(0).getScenario());
+                resp.setOptions(Arrays.asList(
+                    HollandQuestions.QUESTIONS.get(0).getOptionA(),
+                    HollandQuestions.QUESTIONS.get(0).getOptionB()
+                ));
                 profile.setDialogPhase(Phase.HOLLAND.name());
                 profile.setCurrentQuestionId("H1");
                 resp.setPhase(Phase.HOLLAND.name());
                 resp.setNextQuestionId("H1");
             }
         } else {
-            resp.setResponse("请选择：" + q.getText() + " 选项：" + String.join(" / ", q.getOptions()));
+            resp.setResponse("可以从下面选项中选一个哦～");
+            resp.setOptions(q.getOptions());
             resp.setNextQuestionId(qId);
         }
 
@@ -351,11 +418,14 @@ public class DialogEngineService {
             } catch (NumberFormatException ignored) {}
         }
 
-        // 处理当前回答
-        if (answeredCount > 0 || currentIdx > 0 || (text.equalsIgnoreCase("A") || text.equalsIgnoreCase("B"))) {
-            if (text.equalsIgnoreCase("A") || text.equalsIgnoreCase("B")) {
+        // 处理当前回答 - 支持 "A"、"B"、"A. xxx"、"B. xxx" 等多种格式
+        boolean isA = text.trim().toUpperCase().startsWith("A");
+        boolean isB = text.trim().toUpperCase().startsWith("B");
+        
+        if (isA || isB) {
+            if (currentIdx >= 0 && currentIdx < HollandQuestions.QUESTIONS.size()) {
                 HollandQuestions.HollandQuestion q = HollandQuestions.QUESTIONS.get(currentIdx);
-                String value = text.equalsIgnoreCase("A") ? q.getValueA() : q.getValueB();
+                String value = isA ? q.getValueA() : q.getValueB();
 
                 Map<String, Integer> scores;
                 try {
@@ -404,7 +474,11 @@ public class DialogEngineService {
             resp.setNextAction("show_result");
         } else {
             HollandQuestions.HollandQuestion nextQ = HollandQuestions.QUESTIONS.get(currentIdx);
-            resp.setResponse("第" + (currentIdx + 1) + "题：" + nextQ.getScenario() + "\nA: " + nextQ.getOptionA() + "\nB: " + nextQ.getOptionB());
+            resp.setResponse("第" + (currentIdx + 1) + "题 / 共12题：" + nextQ.getScenario());
+            resp.setOptions(Arrays.asList(
+                nextQ.getOptionA(),
+                nextQ.getOptionB()
+            ));
             profile.setCurrentQuestionId("H" + (currentIdx + 1));
             resp.setNextQuestionId("H" + (currentIdx + 1));
             resp.setNextAction("voice_input");
@@ -505,6 +579,14 @@ public class DialogEngineService {
 
     private Integer extractNumber(String text) {
         try {
+            // 处理范围型输入，如 "550-600分"、"10000-30000"，取中间值
+            if (text.matches(".*\\d+\\s*[-~～]\\s*\\d+.*")) {
+                String[] parts = text.split("[-~～]");
+                int n1 = Integer.parseInt(parts[0].replaceAll("[^0-9]", ""));
+                int n2 = Integer.parseInt(parts[1].replaceAll("[^0-9]", ""));
+                return (n1 + n2) / 2;
+            }
+            // 处理 "以上" "以内" 等，如 "600分以上" → 600, "10000以内" → 10000
             String num = text.replaceAll("[^0-9]", "");
             if (num.isEmpty()) return null;
             return Integer.parseInt(num);

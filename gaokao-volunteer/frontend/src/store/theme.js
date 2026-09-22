@@ -9,7 +9,7 @@ export const useThemeStore = defineStore('theme', () => {
     purple: { name: '紫色梦幻', icon: '🔮', label: 'Purple Dream' }
   }
 
-  const currentTheme = ref(localStorage.getItem('theme') || 'dark')
+  const currentTheme = ref(localStorage.getItem('theme') || 'light')
 
   function applyTheme(theme) {
     const html = document.documentElement

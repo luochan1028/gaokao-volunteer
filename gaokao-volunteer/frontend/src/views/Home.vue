@@ -11,21 +11,23 @@
         <div class="container hero-content">
           <div class="hero-badge animate-fade-in-up">
             <span class="badge-dot"></span>
-            <span>2026 志愿填报智能系统</span>
+            <span>2026 志愿填报 · AI 智能对话</span>
           </div>
           <h2 class="hero-title animate-fade-in-up stagger-1">
-            <span class="heading-tech">让志愿填报</span>
-            <span class="heading-tech">更科学</span>
+            <span class="heading-tech">用对话聊出</span>
+            <span class="heading-tech">你的志愿方向</span>
           </h2>
           <p class="hero-subtitle animate-fade-in-up stagger-2">
-            基于历年录取数据与位次分析，AI 智能生成「冲 · 稳 · 保」三梯度志愿方案
+            语音对话采集信息，张雪峰八问 + 霍兰德性格测评，AI 自动生成专属《志愿意向书》
           </p>
           <div class="hero-buttons animate-fade-in-up stagger-3">
-            <router-link to="/recommend" class="btn-primary-tech">
-              <span>立即开始</span>
+            <router-link to="/ai/assistant" class="btn-primary-tech ai-hero-btn">
+              <span class="btn-icon">🤖</span>
+              <span>开始AI对话</span>
+              <span class="btn-arrow">→</span>
             </router-link>
-            <router-link to="/colleges" class="btn-tech">
-              <span>浏览院校</span>
+            <router-link to="/recommend" class="btn-tech">
+              <span>传统推荐</span>
             </router-link>
           </div>
           <div class="hero-stats animate-fade-in-up stagger-4">
@@ -61,6 +63,20 @@
             <div class="section-line"></div>
           </div>
           <div class="feature-grid">
+            <router-link to="/ai/assistant" class="glass-card feature-card feature-card-ai tech-border stagger-0">
+              <div class="feature-icon-wrap ai-icon-wrap">
+                <span class="feature-icon">🤖</span>
+                <span class="ai-badge">NEW</span>
+              </div>
+              <h4>AI对话助手</h4>
+              <p>语音聊志愿，张雪峰八问+性格测评，自动生成《志愿意向书》</p>
+              <div class="feature-ai-tags">
+                <span>语音对话</span>
+                <span>八问决策</span>
+                <span>意向书</span>
+              </div>
+              <div class="feature-glow"></div>
+            </router-link>
             <div class="glass-card feature-card tech-border stagger-1" v-for="(f, i) in features" :key="i">
               <div class="feature-icon-wrap">
                 <span class="feature-icon">{{ f.icon }}</span>
@@ -82,9 +98,10 @@
             <div class="section-line"></div>
           </div>
           <div class="entry-grid">
-            <router-link v-for="(e, i) in visibleEntries" :key="i" :to="e.link" class="entry-item glass-card tech-border" :class="'stagger-' + ((i % 5) + 1)">
+            <router-link v-for="(e, i) in visibleEntries" :key="i" :to="e.link" class="entry-item glass-card tech-border" :class="['stagger-' + ((i % 5) + 1), { 'entry-highlight': e.highlight }]">
               <div class="entry-icon-wrap">
                 <span class="entry-icon">{{ e.icon }}</span>
+                <span v-if="e.highlight" class="entry-new-badge">NEW</span>
               </div>
               <span class="entry-label">{{ e.label }}</span>
               <div class="entry-arrow">→</div>
@@ -92,6 +109,13 @@
           </div>
         </div>
       </section>
+
+      <!-- 浮动AI助手按钮 -->
+      <router-link to="/ai/assistant" class="floating-ai-btn" title="AI志愿助手">
+        <span class="floating-icon">🤖</span>
+        <span class="floating-pulse"></span>
+        <span class="floating-tooltip">AI志愿助手</span>
+      </router-link>
     </div>
   </TechLayout>
 </template>
@@ -113,6 +137,7 @@ const features = [
 ]
 
 const entries = computed(() => [
+  { icon: '🤖', label: 'AI对话助手', link: '/ai/assistant', show: true, highlight: true },
   { icon: '🎯', label: '智能推荐', link: '/recommend', show: true },
   { icon: '🏛️', label: '查院校', link: '/colleges', show: true },
   { icon: '📖', label: '看专业', link: '/majors', show: true },
@@ -175,6 +200,16 @@ const visibleEntries = computed(() => entries.value.filter(e => e.show))
   max-width: 600px; margin: 0 auto 40px; line-height: 1.8;
 }
 .hero-buttons { display: flex; gap: 16px; justify-content: center; margin-bottom: 60px; }
+.ai-hero-btn {
+  display: inline-flex !important; align-items: center; gap: 10px;
+  padding: 14px 32px !important; font-size: 16px !important; font-weight: 600 !important;
+  position: relative; overflow: hidden;
+}
+.ai-hero-btn .btn-icon { font-size: 20px; }
+.ai-hero-btn .btn-arrow {
+  transition: transform 0.3s ease;
+}
+.ai-hero-btn:hover .btn-arrow { transform: translateX(4px); }
 
 .hero-stats {
   display: flex; justify-content: center; align-items: center; gap: 24px;
@@ -209,6 +244,55 @@ const visibleEntries = computed(() => entries.value.filter(e => e.show))
 .feature-icon { font-size: 28px; }
 .feature-card h4 { font-size: 18px; color: var(--color-text-primary); margin-bottom: 8px; }
 .feature-card p { font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; }
+.feature-glow {
+  position: absolute; bottom: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent-primary) 5%, transparent) 0%, transparent 60%);
+  opacity: 0; transition: opacity 0.5s ease;
+}
+
+/* AI 功能卡片 - 突出样式 */
+.feature-card-ai {
+  cursor: pointer !important; text-decoration: none; color: inherit;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-accent-primary) 8%, var(--color-bg-card)),
+    color-mix(in srgb, var(--color-accent-secondary) 5%, var(--color-bg-card))) !important;
+  border-color: color-mix(in srgb, var(--color-accent-primary) 40%, var(--color-border)) !important;
+  grid-column: span 1;
+  position: relative;
+}
+.feature-card-ai::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+  border-radius: 16px 16px 0 0;
+}
+.feature-card-ai:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px var(--color-border-glow);
+}
+.ai-icon-wrap {
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary)) !important;
+  position: relative;
+}
+.ai-icon-wrap .feature-icon { filter: brightness(0) invert(1); }
+.ai-badge {
+  position: absolute; top: -6px; right: -6px;
+  background: var(--color-accent-green); color: #fff;
+  font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px;
+  animation: badge-bounce 2s ease-in-out infinite;
+}
+@keyframes badge-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+.feature-ai-tags {
+  display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+  margin-top: 12px;
+}
+.feature-ai-tags span {
+  padding: 2px 8px; border-radius: 12px; font-size: 11px;
+  background: color-mix(in srgb, var(--color-accent-primary) 10%, transparent);
+  color: var(--color-accent-primary); border: 1px solid color-mix(in srgb, var(--color-accent-primary) 20%, transparent);
+}
 .feature-glow {
   position: absolute; bottom: -50%; left: -50%; width: 200%; height: 200%;
   background: radial-gradient(circle, color-mix(in srgb, var(--color-accent-primary) 5%, transparent) 0%, transparent 60%);
@@ -249,4 +333,62 @@ const visibleEntries = computed(() => entries.value.filter(e => e.show))
   .hero-stats { flex-wrap: wrap; gap: 16px; }
   .stat-divider { display: none; }
 }
+
+/* 高亮快捷入口 */
+.entry-highlight {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-accent-primary) 12%, var(--color-bg-card)),
+    color-mix(in srgb, var(--color-accent-secondary) 8%, var(--color-bg-card))) !important;
+  border-color: color-mix(in srgb, var(--color-accent-primary) 40%, var(--color-border)) !important;
+  position: relative;
+}
+.entry-highlight .entry-icon-wrap {
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary)) !important;
+}
+.entry-highlight .entry-icon { filter: brightness(0) invert(1); }
+.entry-new-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--color-accent-green); color: #fff;
+  font-size: 9px; font-weight: bold; padding: 1px 5px; border-radius: 8px;
+}
+
+/* 浮动AI按钮 */
+.floating-ai-btn {
+  position: fixed; right: 24px; bottom: 80px; z-index: 1000;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--color-accent-primary) 40%, transparent);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+.floating-ai-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--color-accent-primary) 50%, transparent);
+}
+.floating-icon {
+  font-size: 28px;
+  animation: float-bob 2s ease-in-out infinite;
+}
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.floating-pulse {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent-primary) 30%, transparent);
+  animation: floating-pulse 2s ease-out infinite;
+}
+@keyframes floating-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.floating-tooltip {
+  position: absolute; right: 76px; white-space: nowrap;
+  background: var(--color-bg-card); color: var(--color-text-primary);
+  padding: 6px 14px; border-radius: 8px; font-size: 13px;
+  border: 1px solid var(--color-border);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.floating-ai-btn:hover .floating-tooltip { opacity: 1; }
 </style>

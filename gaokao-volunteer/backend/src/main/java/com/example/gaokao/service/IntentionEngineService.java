@@ -92,39 +92,90 @@ public class IntentionEngineService {
         // 6. 排序
         scored.sort((a, b) -> Double.compare(b.totalScore, a.totalScore));
 
-        // 7. 冲稳保分层
+        // 7. 冲稳保分层 - 按分数线差合理分配，确保每栏都有数据
         List<RecommendationItem> chong = new ArrayList<>();
         List<RecommendationItem> wen = new ArrayList<>();
         List<RecommendationItem> bao = new ArrayList<>();
 
+        // 先按分数线差分类
         for (ScoredGroup sg : scored) {
             RecommendationItem item = buildRecommendationItem(sg, profile, score);
-            String tier = sg.avgLine > score + 5 ? "冲" : (sg.avgLine >= score - 5 ? "稳" : "保");
+            int diff = sg.avgLine - score;
+
+            String tier;
+            if (diff > 8) tier = "冲";
+            else if (diff >= -8) tier = "稳";
+            else tier = "保";
+
             item.setAdmissionProb(tier);
-
-            if (tier.equals("冲") && chong.size() < 5) chong.add(item);
-            else if (tier.equals("稳") && wen.size() < 5) wen.add(item);
-            else if (tier.equals("保") && bao.size() < 5) bao.add(item);
+            if (tier.equals("冲")) chong.add(item);
+            else if (tier.equals("稳")) wen.add(item);
+            else bao.add(item);
         }
 
-        // 确保至少3个
-        while (chong.size() < 3 && scored.size() > chong.size() + wen.size() + bao.size()) {
-            int idx = chong.size() + wen.size() + bao.size();
-            RecommendationItem item = buildRecommendationItem(scored.get(idx), profile, score);
-            item.setAdmissionProb("冲");
-            chong.add(item);
-        }
-        while (wen.size() < 3 && scored.size() > chong.size() + wen.size() + bao.size()) {
-            int idx = chong.size() + wen.size() + bao.size();
-            RecommendationItem item = buildRecommendationItem(scored.get(idx), profile, score);
-            item.setAdmissionProb("稳");
-            wen.add(item);
-        }
-        while (bao.size() < 3 && scored.size() > chong.size() + wen.size() + bao.size()) {
-            int idx = chong.size() + wen.size() + bao.size();
-            RecommendationItem item = buildRecommendationItem(scored.get(idx), profile, score);
-            item.setAdmissionProb("保");
-            bao.add(item);
+        // 保底：如果某栏为空或不足2个，从相邻栏借调，确保每栏都有内容
+        int total = scored.size();
+        if (total > 0) {
+            // 如果冲为空/不足，从稳中借
+            if (chong.size() < 2 && wen.size() > 2) {
+                int need = 2 - chong.size();
+                int borrow = Math.min(need, wen.size() - 2);
+                for (int i = 0; i < borrow; i++) {
+                    RecommendationItem item = wen.remove(0);
+                    item.setAdmissionProb("冲");
+                    chong.add(item);
+                }
+            }
+            // 如果保为空/不足，从稳中借
+            if (bao.size() < 2 && wen.size() > 2) {
+                int need = 2 - bao.size();
+                int borrow = Math.min(need, wen.size() - 2);
+                for (int i = 0; i < borrow; i++) {
+                    RecommendationItem item = wen.remove(wen.size() - 1);
+                    item.setAdmissionProb("保");
+                    bao.add(0, item);
+                }
+            }
+            // 如果稳为空/不足，从冲和保中各借
+            if (wen.size() < 2) {
+                int need = 2 - wen.size();
+                if (chong.size() > 1) {
+                    int borrow = Math.min((need + 1) / 2, chong.size() - 1);
+                    for (int i = 0; i < borrow; i++) {
+                        RecommendationItem item = chong.remove(chong.size() - 1);
+                        item.setAdmissionProb("稳");
+                        wen.add(item);
+                    }
+                }
+                need = 2 - wen.size();
+                if (bao.size() > 1 && need > 0) {
+                    int borrow = Math.min(need, bao.size() - 1);
+                    for (int i = 0; i < borrow; i++) {
+                        RecommendationItem item = bao.remove(0);
+                        item.setAdmissionProb("稳");
+                        wen.add(item);
+                    }
+                }
+            }
+
+            // 如果总数少，确保每栏至少1个
+            if (total <= 4) {
+                if (chong.isEmpty() && wen.size() > 1) {
+                    RecommendationItem item = wen.remove(0);
+                    item.setAdmissionProb("冲");
+                    chong.add(item);
+                }
+                if (bao.isEmpty() && wen.size() > 1) {
+                    RecommendationItem item = wen.remove(wen.size() - 1);
+                    item.setAdmissionProb("保");
+                    bao.add(0, item);
+                }
+            }
+
+            // 每栏最多6个
+            if (chong.size() > 6) chong = chong.subList(0, 6);
+            if (wen.size() > 6) wen = wen.subList(0, 6);
+            if (bao.size() > 6) bao = bao.subList(0, 6);
         }
 
         // 构建意向书

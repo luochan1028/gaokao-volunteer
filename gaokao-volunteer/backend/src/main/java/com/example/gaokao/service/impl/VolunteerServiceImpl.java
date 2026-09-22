@@ -73,7 +73,9 @@ public class VolunteerServiceImpl implements VolunteerService {
                 .user(user)
                 .name(name)
                 .description(description)
-                .selectionMode(VolunteerPlan.SelectionMode.valueOf(selectionMode.toUpperCase()))
+                .selectionMode(selectionMode != null && !selectionMode.isBlank()
+                        ? VolunteerPlan.SelectionMode.valueOf(selectionMode.toUpperCase())
+                        : VolunteerPlan.SelectionMode.COLLEGE_FIRST)
                 .totalCount(volunteerListIds.size())
                 .build();
 

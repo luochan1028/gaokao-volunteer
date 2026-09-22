@@ -183,7 +183,7 @@
 
             <div class="gradient-tabs glass-card tech-border">
               <el-tabs v-model="activeTab" type="border-card">
-                <el-tab-pane label="🎯 冲（{{ recommendationResult.chongList.length }}所）" name="chong">
+                <el-tab-pane name="chong"><template #label>🎯 冲（{{ recommendationResult.chongList.length }}所）</template>
                   <div class="volunteer-list">
                     <div
                       v-for="item in recommendationResult.chongList"
@@ -223,7 +223,7 @@
                   </div>
                 </el-tab-pane>
 
-                <el-tab-pane label="✅ 稳（{{ recommendationResult.wenList.length }}所）" name="wen">
+                <el-tab-pane name="wen"><template #label>✅ 稳（{{ recommendationResult.wenList.length }}所）</template>
                   <div class="volunteer-list">
                     <div
                       v-for="item in recommendationResult.wenList"
@@ -263,7 +263,7 @@
                   </div>
                 </el-tab-pane>
 
-                <el-tab-pane label="🛡️ 保（{{ recommendationResult.baoList.length }}所）" name="bao">
+                <el-tab-pane name="bao"><template #label>🛡️ 保（{{ recommendationResult.baoList.length }}所）</template>
                   <div class="volunteer-list">
                     <div
                       v-for="item in recommendationResult.baoList"

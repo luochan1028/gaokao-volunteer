@@ -1,0 +1,26 @@
+{
+  "name": "github-trending-mail",
+  "version": "1.0.0",
+  "description": "GitHub 热门项目自动扫描邮件推送系统 —— 定时抓取 GitHub 热度 TOP10 开源项目，解析核心信息并通过 SMTP 邮件自动推送",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.js --daemon",
+    "scan": "node src/index.js --once",
+    "test-mail": "node src/index.js --test-mail",
+    "logs": "node src/index.js --logs",
+    "init": "node src/index.js --init",
+    "test": "node test/clean.test.js && node test/scheduler.test.js && node test/mock-smtp-plain.test.js && node test/mock-smtp-login.test.js && node test/testmail.test.js && node test/categories.test.js && node test/e2e.test.js"
+  },
+  "keywords": [
+    "github",
+    "trending",
+    "邮件推送",
+    "smtp",
+    "定时任务"
+  ],
+  "license": "MIT"
+}
